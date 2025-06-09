@@ -97,9 +97,7 @@ interface GameCardProps {
 }
 
 export const GameCard: React.FC<GameCardProps> = ({ game }) => {
-  console.log(`game: ${game.id}`);
   const jackpot = useLobbyStore((s) => s.jackpots[game.id]);
-  console.log(`jackpots: ${JSON.stringify(useLobbyStore((s) => s.jackpots))}`);
   
   const activeCategory = useLobbyStore((s) => s.activeCategory);
 
