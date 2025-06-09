@@ -5,9 +5,7 @@ import type { Game } from "../types";
 import { fetchGames } from "../api/games";
 import { fetchJackpots } from "../api/jackpot";
 
-// -------------------
-// Constants & helpers
-// -------------------
+
 export const OTHER_CATEGORIES = ["ball", "virtual", "fun"] as const;
 type OtherCategoryId = "other";
 
@@ -27,7 +25,7 @@ interface LobbyState {
   games: Game[];
   jackpots: Record<string, number>;
   categories: Category[];
-  activeCategory: string | OtherCategoryId; // "all" / id / "other"
+  activeCategory: string | OtherCategoryId;
   loading: boolean;
   error: string | null;
 
@@ -71,10 +69,21 @@ export const useLobbyStore = create<LobbyState>()(
                 .map((id) => ({ id, label: cap(id) })),
             ];
 
-            // push static Other category to the far right
             derived.push({ id: "other", label: "Other" });
 
-            set({ games, categories: derived, loading: false });
+            const activeCategory = get().activeCategory;
+            let filteredGames = games;
+            if (activeCategory === "other") {
+              filteredGames = games.filter((g) =>
+                g.categories.some((c) => OTHER_CATEGORIES.includes(c as any))
+              );
+            } else if (activeCategory !== "all") {
+              filteredGames = games.filter((g) => g.categories.includes(activeCategory));
+            } else {
+                filteredGames = games;
+            }
+
+            set({ games: filteredGames, categories: derived, loading: false });
           } catch (err: any) {
             set({ loading: false, error: err?.message ?? "Failed to load games" });
           }
@@ -90,7 +99,6 @@ export const useLobbyStore = create<LobbyState>()(
 
         startJackpotPolling: () => {
           if (jackpotInterval) return; // already running
-          // fire immediately
           get().loadJackpots();
           jackpotInterval = setInterval(get().loadJackpots, 5000);
         },
@@ -101,31 +109,12 @@ export const useLobbyStore = create<LobbyState>()(
           jackpotInterval = null;
         },
 
-        setActiveCategory: (id) => set({ activeCategory: id }),
+        setActiveCategory: (id) => {
+            set({ activeCategory: id });
+            get().loadGames();
+        }
       }),
-      { name: "lobby-store" } // persisted in localStorage for quick reload
+      { name: "lobby-store" }
     )
   )
 );
-
-// -------------------
-// Selectors (optional helpers)
-// -------------------
-export const selectVisibleGames = (state: LobbyState) => {
-  const { games, activeCategory } = state;
-
-  if (activeCategory === "all") return games;
-
-  if (activeCategory === "other") {
-    return games.filter((g) =>
-      g.categories.some((c) => OTHER_CATEGORIES.includes(c as any))
-    );
-  }
-
-  return games.filter((g) => g.categories.includes(activeCategory));
-};
-
-export const selectJackpotForGame =
-  (id: string) =>
-  (state: LobbyState): number | undefined =>
-    state.jackpots[id];

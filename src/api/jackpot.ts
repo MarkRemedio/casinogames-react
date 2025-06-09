@@ -1,4 +1,3 @@
-// api/jackpots.ts
 import axios from "axios";
 import type { Jackpot } from "../types";
 

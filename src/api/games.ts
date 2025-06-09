@@ -1,4 +1,3 @@
-// api/games.ts
 import axios from "axios";
 import type { Game } from "../types";
 
